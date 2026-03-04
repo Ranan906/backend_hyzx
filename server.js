@@ -4,16 +4,19 @@ const path = require('path');
 const fs = require('fs');
 
 const app = express();
-const port = 3000;
+// 核心改动：端口适配 Render / 本地调试
+const PORT = process.env.PORT || 3000;
 
 // ========== 中间件 ==========
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// 静态资源
 app.use(express.static('public'));
 
-// 允许跨域（小程序开发时请求本机或局域网后端需放行；上线后若前后端同域可酌情移除）
+// 允许跨域（小程序请求时必备）
 app.use((req, res, next) => {
-  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Origin', '*'); 
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   if (req.method === 'OPTIONS') return res.sendStatus(200);
@@ -22,28 +25,36 @@ app.use((req, res, next) => {
 
 // 确保上传目录存在
 const uploadDir = path.join(__dirname, 'uploads');
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
-}
+if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
 
-// 静态资源：上传的图片可通过 /uploads/xxx 访问（小程序请求时需拼上你的后端域名）
+// 静态资源
 app.use('/uploads', express.static(uploadDir));
 
-// 静态资源：轮播图图片可通过 /images/xxx 访问
+// 轮播图等公共图片（假设 images 在上一级目录）
 const imagesDir = path.join(__dirname, '..', 'images');
 app.use('/images', express.static(imagesDir));
 
-// 配置 multer 用于图片上传
+// ========== multer 配置 ==========
 const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, uploadDir);
-  },
-  filename: function (req, file, cb) {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+  destination: (req, file, cb) => cb(null, uploadDir),
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
     cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
   }
 });
-const upload = multer({ storage: storage });
+const upload = multer({ storage });
+
+// ========== 示例上传接口 ==========
+app.post('/upload', upload.single('file'), (req, res) => {
+  if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
+  // 返回小程序可直接访问的路径
+  const fileUrl = `/uploads/${req.file.filename}`;
+  res.json({ url: fileUrl });
+});
+
+// ========== 启动 ==========
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+
 
 // ========== 模拟轮播图数据 ==========
 let banners = [
