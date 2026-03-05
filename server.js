@@ -11,9 +11,6 @@ const PORT = process.env.PORT || 3000;
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// 静态资源
-app.use(express.static('public'));
-
 // 允许跨域（小程序请求时必备）
 app.use((req, res, next) => {
   res.setHeader('Access-Control-Allow-Origin', '*'); 
@@ -23,15 +20,13 @@ app.use((req, res, next) => {
   next();
 });
 
-// 确保上传目录存在
+// 用户上传图片
 const uploadDir = path.join(__dirname, 'uploads');
 if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
-
-// 静态资源
 app.use('/uploads', express.static(uploadDir));
 
-// 轮播图等公共图片（假设 images 在上一级目录）
-const imagesDir = path.join(__dirname, '..', 'images');
+// 静态图片
+const imagesDir = path.join(__dirname,  'images');
 app.use('/images', express.static(imagesDir));
 
 // ========== multer 配置 ==========
