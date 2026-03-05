@@ -304,12 +304,6 @@ app.get('/api/banners', (req, res) => {
   res.json(banners);
 });
 
-// 启动服务器
-app.listen(port, () => {
-  console.log(`服务器运行在 http://localhost:${port}`);
-  console.log('小程序请求时请将 utils/config.js 中 BASE_URL 设为该地址（真机调试用本机局域网 IP:3000）');
-});
-
 // 添加上传二维码接口
 app.post('/api/qrcodes/:type', upload.single('image'), (req, res) => {
   const type = req.params.type;
